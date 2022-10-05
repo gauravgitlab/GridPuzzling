@@ -7,8 +7,8 @@ public enum eGridType { None = 0, Tree, Grass }
 public class GridLevel : MonoBehaviour
 {
     // we are considering the grid size is 6x8 
-    private readonly int _column = 6;
-    private readonly int _row = 8;
+    private readonly int _width = 6;
+    private readonly int _height = 8;
     private Grid[,] _puzzleGrid;
 
     public ScrollRect ScrollRect;  
@@ -17,59 +17,69 @@ public class GridLevel : MonoBehaviour
     public Sprite TreeSprite;
     public Sprite GrassSprite;
 
-    private int EachGridTypeCountInColumn => _column / 2;
-    private int EachGridTypeCountInRow => _row / 2;
+    private int EachGridTypeCountInWidth => _width / 2;
+    private int EachGridTypeCountInHeight => _height / 2;
 
     private void Start()
     {
-        _puzzleGrid = new Grid[_column, _row];
+        _puzzleGrid = new Grid[_width, _height];
         CreateGridArea();
-        //GenerateSolution();
+        GenerateSolution();
     }
 
     private void CreateGridArea()
     {
-        for(int rowIndex = 0; rowIndex < _row; rowIndex++)
+        for (int y = 0; y < _height; y++)
         {
-            for(int columnIndex = 0; columnIndex < _column; columnIndex++)
+            for (int x = 0; x < _width; x++)
             {
                 GameObject gridObject = Instantiate(GridPrefab, ScrollRect.content);
                 Grid grid = gridObject.AddComponent<Grid>();
-                _puzzleGrid[columnIndex, rowIndex] = grid;
-                grid.Init(rowIndex, columnIndex);
+                _puzzleGrid[x, y] = grid;
+                grid.Init(x, y);
             }
         }
     }
 
     private void GenerateSolution()
     {
-        for(int rowIndex = 0; rowIndex < _row; rowIndex++)
+        for(int y = 0; y < _height; y++)
         {
-            for (int columnIndex = 0; columnIndex < _column; columnIndex++)
+            for (int x = 0; x < _width; x++)
             {
-                Grid currentGrid = _puzzleGrid[columnIndex, rowIndex];
+                Grid currentGrid = _puzzleGrid[x, y];
 
                 // left grid
-                eGridType leftGridType = GetLeftGridType(columnIndex, rowIndex);
+                eGridType leftGridType = GetLeftGridType(x, y);
                 bool isCurrentGridSet = SetCurrentGrid(currentGrid, leftGridType);
                 if (isCurrentGridSet) continue;
 
-                // bottom
-                eGridType bottomGridType = GetBottomGridType(columnIndex, rowIndex);
-                isCurrentGridSet = SetCurrentGrid(currentGrid, bottomGridType);
+                // top grid
+                eGridType topGridType = GetTopGridType(x, y);
+                isCurrentGridSet = SetCurrentGrid(currentGrid, topGridType);
                 if (isCurrentGridSet) continue;
 
                 // check number of each grid type on left side
-                eGridType leftSideFilledGridType = GetLeftSidesFilledGridType(columnIndex, rowIndex);
-                isCurrentGridSet= SetCurrentGrid(currentGrid, leftSideFilledGridType);
-                if(isCurrentGridSet) continue;
+                eGridType leftSideFilledGridType = GetLeftSidesFilledGridType(x, y);
+                isCurrentGridSet = SetCurrentGrid(currentGrid, leftSideFilledGridType);
+                if (isCurrentGridSet) continue;
 
+                // check number of each grid type on top side
+                (eGridType filledGridType, eGridType preferedGridType) topSideFilledGridType = GetTopSidesFilledGridType(x, y);
+                isCurrentGridSet = SetCurrentGrid(currentGrid, topSideFilledGridType.filledGridType);
+                if (isCurrentGridSet) continue;
 
-                // check number of each grid type on right side
-
-                int random = UnityEngine.Random.Range(1, Enum.GetNames(typeof(eGridType)).Length);
-                eGridType gridType = (eGridType)random;
-                currentGrid.Set(gridType, GetSprite(gridType));
+                // check random grid...if there is no prefered grid
+                if(topSideFilledGridType.preferedGridType != eGridType.None)
+                {
+                    currentGrid.Set(topSideFilledGridType.preferedGridType, GetSprite(topSideFilledGridType.preferedGridType));
+                }
+                else
+                {
+                    int random = UnityEngine.Random.Range(1, Enum.GetNames(typeof(eGridType)).Length);
+                    eGridType gridType = (eGridType)random;
+                    currentGrid.Set(gridType, GetSprite(gridType));
+                }
             }
         }
     }
@@ -91,18 +101,19 @@ public class GridLevel : MonoBehaviour
         return false;
     }
 
-    private eGridType GetLeftGridType(int columnIndex, int rowIndex)
+    private eGridType GetLeftGridType(int x, int y)
     {
-        int leftGridIndex = rowIndex;
+        int leftGridIndex = x;
         int treeGridCount = 0;
         int grassGridCount = 0;
+
         for(int i=0; i<2; i++)
         {
             leftGridIndex -= 1;
             if (leftGridIndex < 0)
                 return eGridType.None;
 
-            Grid leftGrid = _puzzleGrid[columnIndex, leftGridIndex];
+            Grid leftGrid = _puzzleGrid[leftGridIndex, y];
             if(leftGrid.GridType == eGridType.None)
                 return eGridType.None;
 
@@ -115,39 +126,39 @@ public class GridLevel : MonoBehaviour
         return treeGridCount >= 2 ? eGridType.Tree : grassGridCount >= 2 ? eGridType.Grass : eGridType.None;
     }
 
-    private eGridType GetBottomGridType(int columnIndex, int rowIndex)
+    private eGridType GetTopGridType(int x, int y)
     {
-        int bottomGridIndex = columnIndex;
+        int topGridIndex = y;
         int treeGridCount = 0;
         int grassGridCount = 0;
 
         for (int i = 0; i < 2; i++)
         {
-            bottomGridIndex -= 1;
-            if (bottomGridIndex < 0)
+            topGridIndex -= 1;
+            if (topGridIndex < 0)
                 return eGridType.None;
 
-            Grid bottomGrid = _puzzleGrid[bottomGridIndex, rowIndex];
-            if (bottomGrid.GridType == eGridType.None)
+            Grid topGrid = _puzzleGrid[x, topGridIndex];
+            if (topGrid.GridType == eGridType.None)
                 return eGridType.None;
 
-            if (bottomGrid.GridType == eGridType.Tree)
+            if (topGrid.GridType == eGridType.Tree)
                 treeGridCount++;
-            else if (bottomGrid.GridType == eGridType.Grass)
+            else if (topGrid.GridType == eGridType.Grass)
                 grassGridCount++;
         }
 
         return treeGridCount >= 2 ? eGridType.Tree : grassGridCount >= 2 ? eGridType.Grass : eGridType.None;
     }
 
-    private eGridType GetLeftSidesFilledGridType(int rowIndex, int columnIndex)
+    private eGridType GetLeftSidesFilledGridType(int x, int y)
     {
         // left side
         int leftSideTreeCount = 0;
         int leftSideGrassCount = 0;
-        for(int i=0; i<columnIndex; i++)
+        for(int i = 0; i < x; i++)
         {
-            Grid grid = _puzzleGrid[rowIndex, i];
+            Grid grid = _puzzleGrid[i, y];
             if (grid.GridType == eGridType.None)
                 return eGridType.None;
 
@@ -157,27 +168,34 @@ public class GridLevel : MonoBehaviour
                 leftSideGrassCount++;
         }
 
-        return leftSideTreeCount >= EachGridTypeCountInColumn ? eGridType.Tree : leftSideGrassCount >= EachGridTypeCountInColumn ? eGridType.Grass : eGridType.None;
+        return leftSideTreeCount >= EachGridTypeCountInWidth ? eGridType.Tree : leftSideGrassCount >= EachGridTypeCountInWidth ? eGridType.Grass : eGridType.None;
     }
 
-    private eGridType GetBottomSidesFilledGridType(int rowIndex, int columnIndex)
+    private (eGridType filledGridType, eGridType preferedGridType)  GetTopSidesFilledGridType(int x, int y)
     {
-        // bottom side
-        int bottomSideTreeCount = 0;
-        int bottomSideGrassCount = 0;
-        for (int i = 0; i < rowIndex; i++)
+        // top side
+        int topSideTreeCount = 0;
+        int topSideGrassCount = 0;
+        for (int i = 0; i < y; i++)
         {
-            Grid grid = _puzzleGrid[i, columnIndex];
+            Grid grid = _puzzleGrid[x, i];
             if (grid.GridType == eGridType.None)
-                return eGridType.None;
+                return (eGridType.None, eGridType.None);
 
             if (grid.GridType == eGridType.Tree)
-                bottomSideTreeCount++;
+                topSideTreeCount++;
             else if (grid.GridType == eGridType.Grass)
-                bottomSideGrassCount++;
+                topSideGrassCount++;
         }
 
-        return bottomSideTreeCount >= EachGridTypeCountInColumn ? eGridType.Tree : bottomSideGrassCount >= EachGridTypeCountInColumn ? eGridType.Grass : eGridType.None;
+        return (topSideTreeCount >= EachGridTypeCountInHeight ? eGridType.Tree : 
+                topSideGrassCount >= EachGridTypeCountInHeight ? eGridType.Grass : 
+                eGridType.None, GetPreferedGridType(topSideTreeCount, topSideGrassCount));
+    }
+
+    private eGridType GetPreferedGridType(int treeCount, int grassCount)
+    {
+        return treeCount > grassCount ? eGridType.Grass : grassCount > treeCount ? eGridType.Tree : eGridType.None;
     }
 
     private Sprite GetSprite(eGridType gridType)
@@ -201,11 +219,11 @@ public class GridLevel : MonoBehaviour
 
     private void ResetGrid()
     {
-        for (int columnIndex = 0; columnIndex < _row; columnIndex++)
+        for (int y = 0; y < _height; y++)
         {
-            for (int rowIndex = 0; rowIndex < _column; rowIndex++)
+            for (int x = 0; x < _width; x++)
             {
-                _puzzleGrid[rowIndex, columnIndex].GridType = eGridType.None;
+                _puzzleGrid[x, y].Set(eGridType.None, null);
             }
         }
     }
