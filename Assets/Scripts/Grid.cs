@@ -1,9 +1,14 @@
+
+/// Grid.cs
+/// Responsible for maintaing the GridType of each Grid and set image or color accordingly in the particular grid.
+/// In our case we are using Sprite of either Tree or Grass.
+
 using UnityEngine;
 using UnityEngine.UI;
 
 public class Grid : MonoBehaviour
 {
-    // we dont require x and y, its just to see the position on Inspector while develping and for debugging purpose
+    // we dont require x and y, its just to see the position of Grid on Inspector while develping and for debugging purpose
     [SerializeField] private int _x;
     [SerializeField] private int _y;   
 
@@ -15,6 +20,7 @@ public class Grid : MonoBehaviour
     {
         _x = x;
         _y = y;
+        gameObject.name = $"Grid_{x}_{y}";
         transform.GetChild(0).GetComponent<Text>().text = $"({_x},{_y})";
     }
 
