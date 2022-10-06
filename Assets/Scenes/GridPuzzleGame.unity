@@ -811,8 +811,8 @@ MonoBehaviour:
     m_Right: 0
     m_Top: 0
     m_Bottom: 0
-  m_ChildAlignment: 6
-  m_StartCorner: 2
+  m_ChildAlignment: 0
+  m_StartCorner: 0
   m_StartAxis: 0
   m_CellSize: {x: 100, y: 100}
   m_Spacing: {x: 0, y: 0}
@@ -889,7 +889,9 @@ MonoBehaviour:
     m_HorizontalOverflow: 1
     m_VerticalOverflow: 1
     m_LineSpacing: 1
-  m_Text: "Random \nSolution"
+  m_Text: 'Random
+
+    Solution'
 --- !u!222 &2145519583
 CanvasRenderer:
   m_ObjectHideFlags: 0

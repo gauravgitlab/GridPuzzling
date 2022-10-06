@@ -1,3 +1,40 @@
+/// GridLevel.cs
+/// Responsible for creating an Grid based on size ( in this case 6x8 ) and generate the solution.
+/// ========================================================================================================================
+/// CreateGridArea() method based on the rule where
+/// The width and height of the grid must be an even number size e.g. 6x8, 10x10
+/// ========================================================================================================================
+/// GenerateSolution() method based on the rules where
+/// In each row and column there must not be more than a run of 2 of the same object. Diagonals are not a concern.
+/// The amount of each type must be equal in each row and in each column.
+/// =========================================================================================================================
+
+/// we are considering the grid area from upper left corner and draw the grid based on x and y
+/// 
+///                     ^
+///                     | 
+///                     |
+///                 -----------------------------------------------------
+///         <-----  |         |        |        |       |       |        |
+///                 |         |        |        |       |       |        |
+///                 |  0x0    |  1x0   |  2x0   |  3x0  |  4x0  |  5x0   |
+///                 -----------------------------------------------------
+///                 |         |        |        |       |       |        |
+///                 |         |        |        |       |       |        |
+///                 |  0x1    |  1x1   |  2x1   |  3x1  |  4x1  |  5x1   |
+///                 -----------------------------------------------------
+
+/// NOTE : 
+/// We are using here ScrollRect for quick way to positing the grid using Grid Layout Group attached to ScrollRect.Content
+/// If we change the _width and _height, we can easily write one method which can change the ScrollRect Rect Transform width and height...
+
+/// The alternative approach if we dont want to use ScrollRect is to set the Grid position when we insantiate GridPrefab.
+/// In our case the size of GridPrefab is 100x100. 
+/// we can use the following code
+/// public Vector2 GridSize = new Vector2(100, 100);
+/// GameObject gridObject = Instantiate(GridPrefab, new Vector3(x * GridSize.x, y*GridSize.y), Quaternion.identity, ScrollRect.content);
+
+
 using System;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,8 +44,9 @@ public enum eGridType { None = 0, Tree, Grass }
 public class GridLevel : MonoBehaviour
 {
     // we are considering the grid size is 6x8 
-    private readonly int _column = 6;
-    private readonly int _row = 8;
+    private readonly int _width = 6;
+    private readonly int _height = 8;
+
     private Grid[,] _puzzleGrid;
 
     public ScrollRect ScrollRect;  
@@ -17,63 +55,90 @@ public class GridLevel : MonoBehaviour
     public Sprite TreeSprite;
     public Sprite GrassSprite;
 
-    private int EachGridTypeCountInColumn => _column / 2;
-    private int EachGridTypeCountInRow => _row / 2;
+    private int EachGridTypeCountInWidth => _width / 2;
+    private int EachGridTypeCountInHeight => _height / 2;
 
     private void Start()
     {
-        _puzzleGrid = new Grid[_column, _row];
+        _puzzleGrid = new Grid[_width, _height];
         CreateGridArea();
-        //GenerateSolution();
+        GenerateSolution();
     }
 
+
+    /// <summary>
+    /// Just creating an Grid Area, and filling the puzzleGrid 2d Array. 
+    /// </summary>
     private void CreateGridArea()
     {
-        for(int rowIndex = 0; rowIndex < _row; rowIndex++)
+        for (int y = 0; y < _height; y++)
         {
-            for(int columnIndex = 0; columnIndex < _column; columnIndex++)
+            for (int x = 0; x < _width; x++)
             {
                 GameObject gridObject = Instantiate(GridPrefab, ScrollRect.content);
                 Grid grid = gridObject.AddComponent<Grid>();
-                _puzzleGrid[columnIndex, rowIndex] = grid;
-                grid.Init(rowIndex, columnIndex);
+                _puzzleGrid[x, y] = grid;
+                grid.Init(x, y);
             }
         }
     }
 
+    /// <summary>
+    /// Generating a solution based on rules where each row and column there must not be more than a run of 2 of the same object. Diagonals are not a concern.
+    /// and amount of each type must be equal in each row and in each column.
+    /// here, we are starting from the grid 0x0, and continue from here to next grid 1x0... 2x0... and so on
+    /// In that case, we are considering for left and top grids to get the gridType as bottom and right grids are not supposed to be set yet and give GridType.None only.
+    /// </summary>
     private void GenerateSolution()
     {
-        for(int rowIndex = 0; rowIndex < _row; rowIndex++)
+        for(int y = 0; y < _height; y++)
         {
-            for (int columnIndex = 0; columnIndex < _column; columnIndex++)
+            for (int x = 0; x < _width; x++)
             {
-                Grid currentGrid = _puzzleGrid[columnIndex, rowIndex];
+                Grid currentGrid = _puzzleGrid[x, y];
 
                 // left grid
-                eGridType leftGridType = GetLeftGridType(columnIndex, rowIndex);
+                eGridType leftGridType = GetLeftGridType(x, y);
                 bool isCurrentGridSet = SetCurrentGrid(currentGrid, leftGridType);
                 if (isCurrentGridSet) continue;
 
-                // bottom
-                eGridType bottomGridType = GetBottomGridType(columnIndex, rowIndex);
-                isCurrentGridSet = SetCurrentGrid(currentGrid, bottomGridType);
+                // top grid
+                eGridType topGridType = GetTopGridType(x, y);
+                isCurrentGridSet = SetCurrentGrid(currentGrid, topGridType);
                 if (isCurrentGridSet) continue;
 
-                // check number of each grid type on left side
-                eGridType leftSideFilledGridType = GetLeftSidesFilledGridType(columnIndex, rowIndex);
-                isCurrentGridSet= SetCurrentGrid(currentGrid, leftSideFilledGridType);
-                if(isCurrentGridSet) continue;
+                // check number of each gridType on left side
+                eGridType leftSideFilledGridType = GetLeftSidesFilledGridType(x, y);
+                isCurrentGridSet = SetCurrentGrid(currentGrid, leftSideFilledGridType);
+                if (isCurrentGridSet) continue;
 
+                // check number of each gridType on top side
+                (eGridType filledGridType, eGridType preferedGridType) topSideFilledGridType = GetTopSidesFilledGridType(x, y);
+                isCurrentGridSet = SetCurrentGrid(currentGrid, topSideFilledGridType.filledGridType);
+                if (isCurrentGridSet) continue;
 
-                // check number of each grid type on right side
-
-                int random = UnityEngine.Random.Range(1, Enum.GetNames(typeof(eGridType)).Length);
-                eGridType gridType = (eGridType)random;
-                currentGrid.Set(gridType, GetSprite(gridType));
+                // check random grid...if there is no prefered grid
+                if(topSideFilledGridType.preferedGridType != eGridType.None)
+                {
+                    currentGrid.Set(topSideFilledGridType.preferedGridType, GetSprite(topSideFilledGridType.preferedGridType));
+                }
+                else
+                {
+                    int random = UnityEngine.Random.Range(1, Enum.GetNames(typeof(eGridType)).Length);
+                    eGridType gridType = (eGridType)random;
+                    currentGrid.Set(gridType, GetSprite(gridType));
+                }
             }
         }
     }
 
+    /// <summary>
+    /// Set the current Grid, based on the result the last gridType we had on our search,
+    /// so, if we can find that 2 tiles on the left or top are tree, the current grid would be Grass or vice versa.
+    /// </summary>
+    /// <param name="currentGrid"></param>
+    /// <param name="lastGridType"></param>
+    /// <returns></returns>
     private bool SetCurrentGrid(Grid currentGrid, eGridType lastGridType)
     {
         switch (lastGridType)
@@ -91,18 +156,25 @@ public class GridLevel : MonoBehaviour
         return false;
     }
 
-    private eGridType GetLeftGridType(int columnIndex, int rowIndex)
+
+    /// <summary>
+    /// Get the gridType on the left side of current grid (x, y)
+    /// x and y are the current grid indexes from _puzzleGrid.
+    /// It will return the gridType based on last 2 grid type we have on left side of current grid.
+    /// </summary>
+    private eGridType GetLeftGridType(int x, int y)
     {
-        int leftGridIndex = rowIndex;
+        int leftGridIndex = x;
         int treeGridCount = 0;
         int grassGridCount = 0;
+
         for(int i=0; i<2; i++)
         {
             leftGridIndex -= 1;
             if (leftGridIndex < 0)
                 return eGridType.None;
 
-            Grid leftGrid = _puzzleGrid[columnIndex, leftGridIndex];
+            Grid leftGrid = _puzzleGrid[leftGridIndex, y];
             if(leftGrid.GridType == eGridType.None)
                 return eGridType.None;
 
@@ -115,39 +187,50 @@ public class GridLevel : MonoBehaviour
         return treeGridCount >= 2 ? eGridType.Tree : grassGridCount >= 2 ? eGridType.Grass : eGridType.None;
     }
 
-    private eGridType GetBottomGridType(int columnIndex, int rowIndex)
+
+    /// <summary>
+    /// Get the gridType on the top side of current grid (x, y)
+    /// x and y are the current grid indexes from _puzzleGrid.
+    /// It will return the gridType based on last 2 grid type we have on top side of current grid.
+    /// </summary>
+    private eGridType GetTopGridType(int x, int y)
     {
-        int bottomGridIndex = columnIndex;
+        int topGridIndex = y;
         int treeGridCount = 0;
         int grassGridCount = 0;
 
         for (int i = 0; i < 2; i++)
         {
-            bottomGridIndex -= 1;
-            if (bottomGridIndex < 0)
+            topGridIndex -= 1;
+            if (topGridIndex < 0)
                 return eGridType.None;
 
-            Grid bottomGrid = _puzzleGrid[bottomGridIndex, rowIndex];
-            if (bottomGrid.GridType == eGridType.None)
+            Grid topGrid = _puzzleGrid[x, topGridIndex];
+            if (topGrid.GridType == eGridType.None)
                 return eGridType.None;
 
-            if (bottomGrid.GridType == eGridType.Tree)
+            if (topGrid.GridType == eGridType.Tree)
                 treeGridCount++;
-            else if (bottomGrid.GridType == eGridType.Grass)
+            else if (topGrid.GridType == eGridType.Grass)
                 grassGridCount++;
         }
 
         return treeGridCount >= 2 ? eGridType.Tree : grassGridCount >= 2 ? eGridType.Grass : eGridType.None;
     }
 
-    private eGridType GetLeftSidesFilledGridType(int rowIndex, int columnIndex)
+
+    /// <summary>
+    /// Get the gridType on left side of current grid which count is already equal to half of the width.
+    /// In our case the width = 6, so return GridType.Tree if treeCount >= 3 or GridType.Grass if grassCount >= 3
+    /// </summary>
+    private eGridType GetLeftSidesFilledGridType(int x, int y)
     {
         // left side
         int leftSideTreeCount = 0;
         int leftSideGrassCount = 0;
-        for(int i=0; i<columnIndex; i++)
+        for(int i = 0; i < x; i++)
         {
-            Grid grid = _puzzleGrid[rowIndex, i];
+            Grid grid = _puzzleGrid[i, y];
             if (grid.GridType == eGridType.None)
                 return eGridType.None;
 
@@ -157,29 +240,43 @@ public class GridLevel : MonoBehaviour
                 leftSideGrassCount++;
         }
 
-        return leftSideTreeCount >= EachGridTypeCountInColumn ? eGridType.Tree : leftSideGrassCount >= EachGridTypeCountInColumn ? eGridType.Grass : eGridType.None;
+        return leftSideTreeCount >= EachGridTypeCountInWidth ? eGridType.Tree : leftSideGrassCount >= EachGridTypeCountInWidth ? eGridType.Grass : eGridType.None;
     }
 
-    private eGridType GetBottomSidesFilledGridType(int rowIndex, int columnIndex)
+
+    /// <summary>
+    /// Get the gridType on top side of current grid which count is already equal to half of the height.
+    /// In our case the height = 8, so return GridType.Tree if treeCount >= 4 or GridType.Grass if grassCount >= 4 
+    /// </summary>
+    private (eGridType filledGridType, eGridType preferedGridType)  GetTopSidesFilledGridType(int x, int y)
     {
-        // bottom side
-        int bottomSideTreeCount = 0;
-        int bottomSideGrassCount = 0;
-        for (int i = 0; i < rowIndex; i++)
+        // top side
+        int topSideTreeCount = 0;
+        int topSideGrassCount = 0;
+        for (int i = 0; i < y; i++)
         {
-            Grid grid = _puzzleGrid[i, columnIndex];
+            Grid grid = _puzzleGrid[x, i];
             if (grid.GridType == eGridType.None)
-                return eGridType.None;
+                return (eGridType.None, eGridType.None);
 
             if (grid.GridType == eGridType.Tree)
-                bottomSideTreeCount++;
+                topSideTreeCount++;
             else if (grid.GridType == eGridType.Grass)
-                bottomSideGrassCount++;
+                topSideGrassCount++;
         }
 
-        return bottomSideTreeCount >= EachGridTypeCountInColumn ? eGridType.Tree : bottomSideGrassCount >= EachGridTypeCountInColumn ? eGridType.Grass : eGridType.None;
+        return (topSideTreeCount >= EachGridTypeCountInHeight ? eGridType.Tree : 
+                topSideGrassCount >= EachGridTypeCountInHeight ? eGridType.Grass : 
+                eGridType.None, GetPreferedGridType(topSideTreeCount, topSideGrassCount));
     }
 
+    private eGridType GetPreferedGridType(int treeCount, int grassCount)
+    {
+        return treeCount > grassCount ? eGridType.Grass : grassCount > treeCount ? eGridType.Tree : eGridType.None;
+    }
+
+
+    // return the sprite based on grid type
     private Sprite GetSprite(eGridType gridType)
     {
         switch (gridType)
@@ -193,6 +290,11 @@ public class GridLevel : MonoBehaviour
         return null;
     }
 
+    /// <summary>
+    /// random solution button..
+    /// It will generate solution again
+    /// set the gridType to None for each grid before genrating the solution.
+    /// </summary>
     public void OnClickRandomButton()
     {
         ResetGrid();
@@ -201,11 +303,11 @@ public class GridLevel : MonoBehaviour
 
     private void ResetGrid()
     {
-        for (int columnIndex = 0; columnIndex < _row; columnIndex++)
+        for (int y = 0; y < _height; y++)
         {
-            for (int rowIndex = 0; rowIndex < _column; rowIndex++)
+            for (int x = 0; x < _width; x++)
             {
-                _puzzleGrid[rowIndex, columnIndex].GridType = eGridType.None;
+                _puzzleGrid[x, y].Set(eGridType.None, null);
             }
         }
     }
