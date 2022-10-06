@@ -1,39 +1,38 @@
-/// GridLevel.cs
-/// Responsible for creating an Grid based on size ( in this case 6x8 ) and generate the solution.
-/// ========================================================================================================================
-/// CreateGridArea() method based on the rule where
-/// The width and height of the grid must be an even number size e.g. 6x8, 10x10
-/// ========================================================================================================================
-/// GenerateSolution() method based on the rules where
-/// In each row and column there must not be more than a run of 2 of the same object. Diagonals are not a concern.
-/// The amount of each type must be equal in each row and in each column.
-/// =========================================================================================================================
-
-/// we are considering the grid area from upper left corner and draw the grid based on x and y
-/// 
-///                     ^
-///                     | 
-///                     |
-///                 -----------------------------------------------------
-///         <-----  |         |        |        |       |       |        |
-///                 |         |        |        |       |       |        |
-///                 |  0x0    |  1x0   |  2x0   |  3x0  |  4x0  |  5x0   |
-///                 -----------------------------------------------------
-///                 |         |        |        |       |       |        |
-///                 |         |        |        |       |       |        |
-///                 |  0x1    |  1x1   |  2x1   |  3x1  |  4x1  |  5x1   |
-///                 -----------------------------------------------------
-
-/// NOTE : 
-/// We are using here ScrollRect for quick way to positing the grid using Grid Layout Group attached to ScrollRect.Content
-/// If we change the _width and _height, we can easily write one method which can change the ScrollRect Rect Transform width and height...
-
-/// The alternative approach if we dont want to use ScrollRect is to set the Grid position when we insantiate GridPrefab.
-/// In our case the size of GridPrefab is 100x100. 
-/// we can use the following code
-/// public Vector2 GridSize = new Vector2(100, 100);
-/// GameObject gridObject = Instantiate(GridPrefab, new Vector3(x * GridSize.x, y*GridSize.y), Quaternion.identity, ScrollRect.content);
-
+/*
+ *
+ * GridLevel.cs
+ *   Responsible for creating an Grid based on size ( in this case 6x8 ) and generate the solution.
+ *   ========================================================================================================================
+ *   CreateGridArea() method based on the rule where
+ *   The width and height of the grid must be an even number size e.g. 6x8, 10x10
+ *   ========================================================================================================================
+ *   GenerateSolution() method based on the rules where
+ *   In each row and column there must not be more than a run of 2 of the same object. Diagonals are not a concern.
+ *   The amount of each type must be equal in each row and in each column.
+ *   =========================================================================================================================
+ *   we are considering the grid area from upper left corner and draw the grid based on x and y
+ *   
+ *                       ^
+ *                       | 
+ *                       |
+ *                   -----------------------------------------------------
+ *           <-----  |         |        |        |       |       |        |
+ *                   |         |        |        |       |       |        |
+ *                   |  0x0    |  1x0   |  2x0   |  3x0  |  4x0  |  5x0   |
+ *                   -----------------------------------------------------
+ *                   |         |        |        |       |       |        |
+ *                   |         |        |        |       |       |        |
+ *                   |  0x1    |  1x1   |  2x1   |  3x1  |  4x1  |  5x1   |
+ *                   -----------------------------------------------------
+ *   NOTE : 
+ *   We are using here ScrollRect for quick way to positing the grid using Grid Layout Group attached to ScrollRect.Content
+ *   If we change the _width and _height, we can easily write one method which can change the ScrollRect Rect Transform width and height...
+ *   The alternative approach if we dont want to use ScrollRect is to set the Grid position when we insantiate GridPrefab.
+ *   In our case the size of GridPrefab is 100x100. 
+ *   we can use the following code
+ *   public Vector2 GridSize = new Vector2(100, 100);
+ *   GameObject gridObject = Instantiate(GridPrefab, new Vector3(x * GridSize.x, y*GridSize.y), Quaternion.identity, ScrollRect.content);
+*/
 
 using System;
 using UnityEngine;

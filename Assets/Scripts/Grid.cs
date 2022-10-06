@@ -1,7 +1,9 @@
 
-/// Grid.cs
-/// Responsible for maintaing the GridType of each Grid and set image or color accordingly in the particular grid.
-/// In our case we are using Sprite of either Tree or Grass.
+/*
+* Grid.cs
+* Responsible for maintaing the GridType of each Grid and set image or color accordingly in the particular grid.
+* In our case we are using Sprite of either Tree or Grass.
+*/
 
 using UnityEngine;
 using UnityEngine.UI;
