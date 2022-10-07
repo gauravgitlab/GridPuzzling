@@ -1,6 +1,6 @@
 /*
  *
- * GridLevel.cs
+ *   GridLevel.cs
  *   Responsible for creating an Grid based on size ( in this case 6x8 ) and generate the solution.
  *   ========================================================================================================================
  *   CreateGridArea() method based on the rule where
